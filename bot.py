@@ -1,35 +1,55 @@
-import telebot
-import yt_dlp
 import os
+import traceback
+import yt_dlp
+from telegram.ext import Updater, MessageHandler, Filters
 
-BOT_TOKEN = "8334828200:AAGePTwprzsuN0uvvHZnvIa3YYF8WzkLtRw"
-bot = telebot.TeleBot(BOT_TOKEN)
+TOKEN = os.getenv("8334828200:AAGePTwprzsuN0uvvHZnvIa3YYF8WzkLtRw")
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    bot.reply_to(message, "Link bhejo, main video download karke de dunga! 🚀")
-
-@bot.message_handler(func=lambda msg: True)
-def download_video(message):
-    url = message.text
-
-    bot.reply_to(message, "⏳ Video download ho rahi hai, please wait...")
-
+def download_video(url):
     try:
+        # Output path
+        out = "video.mp4"
+
         ydl_opts = {
-            'outtmpl': 'video.mp4',
-            'format': 'mp4',
+            "format": "mp4",
+            "outtmpl": out,
+            "quiet": True,
+            "no_warnings": True,
+            "retries": 3,
+            "ignoreerrors": True,
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        with open("video.mp4", "rb") as video:
-            bot.send_video(message.chat.id, video)
-
-        os.remove("video.mp4")
+        return out if os.path.exists(out) else None
 
     except Exception as e:
-        bot.reply_to(message, "❌ Error: Video download nahi ho payi.\nLink sahi bhejo ya dusri link try karo.")
+        print("Error:", e)
+        traceback.print_exc()
+        return None
 
-bot.polling()
+def handle_message(update, context):
+    url = update.message.text
+
+    update.message.reply_text("⏳ Video download ho rahi hai, please wait...")
+
+    file = download_video(url)
+
+    if file:
+        update.message.reply_video(video=open(file, "rb"))
+        os.remove(file)
+    else:
+        update.message.reply_text("❌ Error: Video download nahi ho payi. Sahi link bhejo!")
+
+def main():
+    updater = Updater(TOKEN)
+    dp = updater.dispatcher
+
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
