@@ -1,55 +1,36 @@
-import os
-import traceback
+import telebot
 import yt_dlp
-from telegram.ext import Updater, MessageHandler, Filters
+import os
 
-TOKEN = os.getenv("8334828200:AAGePTwprzsuN0uvvHZnvIa3YYF8WzkLtRw")
+BOT_TOKEN = os.environ.get("8334828200:AAGePTwprzsuN0uvvHZnvIa3YYF8WzkLtRw")
 
-def download_video(url):
+bot = telebot.TeleBot(BOT_TOKEN)
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.reply_to(message, "👋 Link bhejo, main video download karke dunga")
+
+@bot.message_handler(func=lambda message: True)
+def download_video(message):
+    url = message.text
+    bot.reply_to(message, "⏳ Download ho rahi hai...")
+
     try:
-        # Output path
-        out = "video.mp4"
-
         ydl_opts = {
-            "format": "mp4",
-            "outtmpl": out,
-            "quiet": True,
-            "no_warnings": True,
-            "retries": 3,
-            "ignoreerrors": True,
+            'outtmpl': 'video.%(ext)s',
+            'format': 'mp4'
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info)
 
-        return out if os.path.exists(out) else None
+        with open(filename, 'rb') as f:
+            bot.send_video(message.chat.id, f)
+
+        os.remove(filename)
 
     except Exception as e:
-        print("Error:", e)
-        traceback.print_exc()
-        return None
+        bot.reply_to(message, "❌ Download fail. Dusri link try karo")
 
-def handle_message(update, context):
-    url = update.message.text
-
-    update.message.reply_text("⏳ Video download ho rahi hai, please wait...")
-
-    file = download_video(url)
-
-    if file:
-        update.message.reply_video(video=open(file, "rb"))
-        os.remove(file)
-    else:
-        update.message.reply_text("❌ Error: Video download nahi ho payi. Sahi link bhejo!")
-
-def main():
-    updater = Updater(TOKEN)
-    dp = updater.dispatcher
-
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
-
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == "__main__":
-    main()
+bot.infinity_polling()
