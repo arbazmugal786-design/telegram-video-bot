@@ -17,8 +17,9 @@ def download_video(message):
 
     try:
         ydl_opts = {
-            'outtmpl': 'video.%(ext)s',
-            'format': 'mp4'
+    'outtmpl': 'video.mp4',
+    'format': 'mp4',
+    'cookiesfrombrowser': ('chrome',),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
