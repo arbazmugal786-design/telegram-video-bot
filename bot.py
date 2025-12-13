@@ -1,9 +1,7 @@
 import telebot
 import yt_dlp
 import os
-
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-
+print("BOT_TOKEN =", os.environ.get("BOT_TOKEN"))
 bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
